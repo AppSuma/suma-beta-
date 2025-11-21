@@ -1,0 +1,7 @@
+{
+  "name": "Suma (Modo Beta)",
+  "description": "An AI-powered assistant for first responders to provide clear, concise, and prioritized guidance in medical emergencies. Features include chat-based consultation, case history, and emergency tools.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
