@@ -1,0 +1,89 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { Case, PatientData, Message } from "../types";
+import { Sender } from "../types";
+
+// Tu API key
+const API_KEY = "AIzaSyB0B3AI5ouQglG4eueIVjakLywMd4AFmzo";
+
+let model: any = null;
+let chat: any = null;
+
+// Iniciar modelo
+const getModel = () => {
+  if (!model) {
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  }
+  return model;
+};
+
+// Instrucción del sistema
+const SYSTEM_INSTRUCTION = 
+  "Eres Suma, un asistente de IA para profesionales de la salud en emergencias. " +
+  "Proporciona orientación clara, concisa y priorizada basada en la información proporcionada. " +
+  "No reemplazas el juicio clínico profesional. " +
+  "Tu primera respuesta DEBE SER una lista numerada de acciones inmediatas, citando fuentes como la OMS, AHA o Cruz Roja.";
+
+// Construcción del prompt inicial
+const buildInitialPrompt = (patientData: PatientData): string => {
+  return `
+DATOS DEL PACIENTE:
+- Rol del profesional: ${patientData.role}
+- Edad: ${patientData.age}
+- Sexo: ${patientData.sex}
+- Antecedentes: ${patientData.background}
+- Medicamentos actuales: ${patientData.medications}
+- Síntomas y signos principales: ${patientData.symptoms}
+
+PREGUNTA: ¿QUÉ DEBO HACER?
+
+RESPUESTA (DEBE SER UNA LISTA NUMERADA de acciones inmediatas y prioritarias):
+`;
+};
+
+// Primera respuesta de Gemini
+export const getInitialRecommendation = async (patientData: PatientData): Promise<string> => {
+  const model = getModel();
+
+  chat = model.startChat({
+    systemInstruction: SYSTEM_INSTRUCTION,
+    history: [],
+  });
+
+  const prompt = buildInitialPrompt(patientData);
+
+  const result = await chat.sendMessage([{ text: prompt }]);
+  return result.response.text() ?? "No se pudo obtener una recomendación.";
+};
+
+// Continuar el chat
+export const continueChat = async (message: string): Promise<string> => {
+  if (!chat) {
+    throw new Error("Chat no inicializado. Debes llamar a getInitialRecommendation primero.");
+  }
+
+  const result = await chat.sendMessage([{ text: message }]);
+  return result.response.text() ?? "No se pudo obtener una respuesta.";
+};
+
+// Restaurar chat desde historial (casos guardados)
+export const resumeChatFromHistory = async (caseData: Case): Promise<void> => {
+  const model = getModel();
+
+  const history = caseData.chat.map((msg: Message) => ({
+    role: msg.sender === Sender.User ? "user" : "model",
+    parts: [{ text: msg.text }],
+  }));
+
+  const initialPrompt = buildInitialPrompt(caseData);
+  history.unshift({
+    role: "user",
+    parts: [{ text: initialPrompt }],
+  });
+
+  chat = model.startChat({
+    systemInstruction: SYSTEM_INSTRUCTION,
+    history: history,
+  });
+};
+  
