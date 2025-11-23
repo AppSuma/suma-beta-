@@ -3,7 +3,7 @@ import type { Case, PatientData, Message } from "../types";
 import { Sender } from "../types";
 
 // Tu API key
-const API_KEY = "AIzaSyB0B3AI5ouQglG4eueIVjakLywMd4AFmzo";
+const API_KEY = "AIzaSyB9CYXhjj-CVNoOqe04qL0fSb3Yk7YT0b8";
 
 let model: any = null;
 let chat: any = null;
